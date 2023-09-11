@@ -8,11 +8,11 @@ type HexString = `0x${string}`;
 const uintCoder = new Coders.NumberCoder(32, false, "uint256");
 const bytesCoder = new Coders.BytesCoder("bytes");
 const addressCoder = new Coders.AddressCoder("address");
-// const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 10, "address");
+const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 10, "address");
 
-// function encodeReply(reply: [number, number, string [] ]): HexString {
-//   return Coders.encode([uintCoder, uintCoder, addresArrayCoder], reply) as HexString;
-// }
+function encodeReply(reply: [number, number, string [] ]): HexString {
+  return Coders.encode([uintCoder, uintCoder, addresArrayCoder], reply) as HexString;
+}
 
 // Defined in TestLensOracle.sol
 const TYPE_RESPONSE = 0;
