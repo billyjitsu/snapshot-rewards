@@ -2,6 +2,7 @@ import { GraphQLClient, gql } from "graphql-request";
 
 async function fetchVotes() {
   function flattenVoterArray(obj) {
+    console.log("obj:", obj);
     if (!obj.votes) {
       return [];
     }

@@ -12,8 +12,8 @@ interface IERC20 {
 }
 
 contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
-    event ResponseReceived(uint reqId, string pair, uint256 value);
-    event ErrorReceived(uint reqId, string pair, uint256 errno);
+    event ResponseReceived(uint reqId, string pair, address [] voters);
+    event ErrorReceived(uint reqId, string pair, address [] voters);
     event Deposited(address indexed user, uint256 amount);
     event Distributed(address indexed user, uint256 totalAmount);
 
@@ -52,15 +52,17 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
 
     function _onMessageReceived(bytes calldata action) internal override {
         require(action.length == 32 * 3, "cannot parse action");
-        (uint respType, uint id, uint256 data) = abi.decode(
+        (uint respType, uint id, address[] memory voters) = abi.decode(
             action,
-            (uint, uint, uint256)
+            (uint, uint, address[])
         );
         if (respType == TYPE_RESPONSE) {
-            emit ResponseReceived(id, requests[id], data);
+            emit ResponseReceived(id, requests[id], voters);
             delete requests[id];
+            //CALL FUNCTION HERE VOTERS
+            distributeTokens(voters);
         } else if (respType == TYPE_ERROR) {
-            emit ErrorReceived(id, requests[id], data);
+            emit ErrorReceived(id, requests[id], voters);
             delete requests[id];
         }
     }
@@ -80,7 +82,7 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
     }
 
     // Distribute tokens to the list of addresses
-     function distributeTokens(address[] memory recipients) external {
+     function distributeTokens(address[] memory recipients) internal {
         uint256 totalAmount = token.balanceOf(address(this));
         uint256 numOfRecipients = recipients.length;
 

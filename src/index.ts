@@ -1,16 +1,18 @@
 import "@phala/pink-env";
 import { Coders } from "@phala/ethers";
-// import fetchVotes  from "./query";
 
-type HexString = `0x${string}`
+
+type HexString = `0x${string}`;
 
 // eth abi coder
 const uintCoder = new Coders.NumberCoder(32, false, "uint256");
 const bytesCoder = new Coders.BytesCoder("bytes");
+const addressCoder = new Coders.AddressCoder("address");
+// const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 10, "address");
 
-function encodeReply(reply: [number, number, number]): HexString {
-  return Coders.encode([uintCoder, uintCoder, uintCoder], reply) as HexString;
-}
+// function encodeReply(reply: [number, number, string [] ]): HexString {
+//   return Coders.encode([uintCoder, uintCoder, addresArrayCoder], reply) as HexString;
+// }
 
 // Defined in TestLensOracle.sol
 const TYPE_RESPONSE = 0;
@@ -38,10 +40,10 @@ function errorToCode(error: Error): number {
   }
 }
 
-// function isHexString(str: string): boolean {
-//   const regex = /^0x[0-9a-f]+$/;
-//   return regex.test(str.toLowerCase());
-// }
+function isHexString(str: string): boolean {
+  const regex = /^0x[0-9a-f]+$/;
+  return regex.test(str.toLowerCase());
+}
 
 function stringToHex(str: string): string {
   var hex = "";
@@ -51,18 +53,20 @@ function stringToHex(str: string): string {
   return "0x" + hex;
 }
 
-
-
 function fetchSnapshotAPI(proposalId: string): any {
   function flattenVoterArray(obj) {
-    if (!obj.votes) {
-      return [];
+    let flattenVoterArray = new Array();
+    const getArray = obj.data.votes;
+    for (let i of getArray) {
+      flattenVoterArray.push(i.voter);
+      //console.log(i.voter);
     }
-    return obj.votes.map((vote) => vote.voter);
+   // console.log("flattenVoterArray after push:", flattenVoterArray);
+    return flattenVoterArray;
   }
 
   const endpoint = "https://hub.snapshot.org/graphql";
-  console.log("proposalId:", proposalId);
+  // console.log("proposalId:", proposalId);
 
   let headers = {
     "Content-Type": "application/json",
@@ -86,7 +90,7 @@ function fetchSnapshotAPI(proposalId: string): any {
 
   // console.log("query before the Hex:", query);
 
-  let body = stringToHex(query); 
+  let body = stringToHex(query);
 
   // console.log("body after hex:", body);
 
@@ -105,25 +109,41 @@ function fetchSnapshotAPI(proposalId: string): any {
 
   if (response.statusCode !== 200) {
     console.log(
-      `Fail to read Snapshot api with status code: ${response.statusCode}, error: ${
-        response.error || response.body
-      }}`
+      `Fail to read Snapshot api with status code: ${
+        response.statusCode
+      }, error: ${response.error || response.body}}`
     );
     throw Error.FailedToFetchData;
   }
 
   let respBody = response.body;
-  console.log("responseBody:", respBody);
+  // console.log("responseBody:", respBody);
 
   if (typeof respBody !== "string") {
     throw Error.FailedToDecode;
   }
 
-  // let parsedData = JSON.parse(respBody);
-  // console.log("parsedData:", parsedData);
-  let flattenedData = flattenVoterArray(respBody);
-  console.log("flattenedData", flattenedData);
+  let parsedData = JSON.parse(respBody);
+  // console.log(JSON.stringify(parsedData, null, 2));
+  //let parsedString = JSON.stringify(parsedData, null, 2);
+  //console.log("parsedData:", parsedData);
+  let flattenedData = flattenVoterArray(parsedData);
+  //console.log("flattenedData", flattenedData);
   return flattenedData;
+}
+
+function parseProfileId(hexx: string): string {
+  var hex = hexx.toString();
+  if (!isHexString(hex)) {
+    throw Error.BadLensProfileId;
+  }
+  hex = hex.slice(2);
+  var str = "";
+  for (var i = 0; i < hex.length; i += 2) {
+    const ch = String.fromCharCode(parseInt(hex.substring(i, i + 2), 16));
+    str += ch;
+  }
+  return str;
 }
 
 //
@@ -141,10 +161,23 @@ function fetchSnapshotAPI(proposalId: string): any {
 // TestLensApiConsumerContract.sol for more details. We suggest a tuple of three elements: [successOrNotFlag, requestId, data] as
 // the return value.
 //
-export default async function main(proposalId: string) {
-  try{
-    let snapRespsonce = fetchSnapshotAPI(proposalId);
-  // await fetchSnapshotAPI();
+export default function main(proposalId: string){
+  let requestId, encodedProfileId;
+  try {
+    [requestId, encodedProfileId] = Coders.decode([uintCoder, bytesCoder], proposalId);
+  } catch (error) {
+    console.info("Malformed request received");
+    // return encodeReply([TYPE_ERROR, 0, [error] ]);
+  }
+  const profileId = parseProfileId(encodedProfileId as string);
+  console.log(`Request received for profile ${profileId}`);
+
+
+  try {
+    let snapRespsonce = fetchSnapshotAPI(profileId);
+   // console.log("snapRespsonce:", snapRespsonce);
+    console.log( "response:", [TYPE_RESPONSE, requestId, snapRespsonce])
+    // return encodeReply([TYPE_RESPONSE, requestId, snapRespsonce]);
   } catch (error) {
     if (error === Error.FailedToFetchData) {
       throw error;
@@ -152,7 +185,6 @@ export default async function main(proposalId: string) {
       console.log("error:", error);
     }
   }
-
 }
 
 //main("QmPvbwguLfcVryzBRrbY4Pb9bCtxURagdv1XjhtFLf3wHj");
