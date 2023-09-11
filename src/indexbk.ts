@@ -1,6 +1,5 @@
 import "@phala/pink-env";
 import { Coders } from "@phala/ethers";
-// import fetchVotes  from "./query";
 
 type HexString = `0x${string}`
 
@@ -38,10 +37,10 @@ function errorToCode(error: Error): number {
   }
 }
 
-// function isHexString(str: string): boolean {
-//   const regex = /^0x[0-9a-f]+$/;
-//   return regex.test(str.toLowerCase());
-// }
+function isHexString(str: string): boolean {
+  const regex = /^0x[0-9a-f]+$/;
+  return regex.test(str.toLowerCase());
+}
 
 function stringToHex(str: string): string {
   var hex = "";
@@ -51,49 +50,36 @@ function stringToHex(str: string): string {
   return "0x" + hex;
 }
 
-
-
-function fetchSnapshotAPI(proposalId: string): any {
-  function flattenVoterArray(obj) {
-    if (!obj.votes) {
-      return [];
-    }
-    return obj.votes.map((vote) => vote.voter);
-  }
-
-  const endpoint = "https://hub.snapshot.org/graphql";
-  console.log("proposalId:", proposalId);
-
+function fetchLensApiStats(lensApi: string, profileId: string): any {
+  // profile_id should be like 0x0001
   let headers = {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
-
   let query = JSON.stringify({
-    query: ` query {
-      votes(
-        first: 10
-        skip: 0
-        where: { proposal: \"${proposalId}\" }
-        orderBy: "created"
-        orderDirection: desc
-      ) 
-      {
-        voter
-      }
-    }`,
+    query: `query Profile {
+            profile(request: { profileId: \"${profileId}\" }) {
+                stats {
+                    totalFollowers
+                    totalFollowing
+                    totalPosts
+                    totalComments
+                    totalMirrors
+                    totalPublications
+                    totalCollects
+                }
+            }
+        }`,
   });
-
-  // console.log("query before the Hex:", query);
-
-  let body = stringToHex(query); 
-
-  // console.log("body after hex:", body);
-
+  let body = stringToHex(query);
+  //
+  // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
+  // send http request. The function will return an array of response.
+  //
   let response = pink.batchHttpRequest(
     [
       {
-        url: endpoint,
+        url: lensApi,
         method: "POST",
         headers,
         body,
@@ -102,29 +88,35 @@ function fetchSnapshotAPI(proposalId: string): any {
     ],
     10000
   )[0];
-
   if (response.statusCode !== 200) {
     console.log(
-      `Fail to read Snapshot api with status code: ${response.statusCode}, error: ${
+      `Fail to read Lens api with status code: ${response.statusCode}, error: ${
         response.error || response.body
       }}`
     );
     throw Error.FailedToFetchData;
   }
-
   let respBody = response.body;
-  console.log("responseBody:", respBody);
-
   if (typeof respBody !== "string") {
     throw Error.FailedToDecode;
   }
-
-  // let parsedData = JSON.parse(respBody);
-  // console.log("parsedData:", parsedData);
-  let flattenedData = flattenVoterArray(respBody);
-  console.log("flattenedData", flattenedData);
-  return flattenedData;
+  return JSON.parse(respBody);
 }
+
+function parseProfileId(hexx: string): string {
+  var hex = hexx.toString();
+  if (!isHexString(hex)) {
+    throw Error.BadLensProfileId;
+  }
+  hex = hex.slice(2);
+  var str = "";
+  for (var i = 0; i < hex.length; i += 2) {
+    const ch = String.fromCharCode(parseInt(hex.substring(i, i + 2), 16));
+    str += ch;
+  }
+  return str;
+}
+
 
 //
 // Here is what you need to implemented for Phat Function, you can customize your logic with
@@ -141,18 +133,34 @@ function fetchSnapshotAPI(proposalId: string): any {
 // TestLensApiConsumerContract.sol for more details. We suggest a tuple of three elements: [successOrNotFlag, requestId, data] as
 // the return value.
 //
-export default async function main(proposalId: string) {
-  try{
-    let snapRespsonce = fetchSnapshotAPI(proposalId);
-  // await fetchSnapshotAPI();
+export default function main(request: HexString, settings: string): HexString {
+  console.log(`handle req: ${request}`);
+  let requestId, encodedProfileId;
+  try {
+    [requestId, encodedProfileId] = Coders.decode([uintCoder, bytesCoder], request);
+  } catch (error) {
+    console.info("Malformed request received");
+    return encodeReply([TYPE_ERROR, 0, errorToCode(error as Error)]);
+  }
+  const profileId = parseProfileId(encodedProfileId as string);
+  console.log(`Request received for profile ${profileId}`);
+
+  try {
+    const respData = fetchLensApiStats(settings, profileId);
+    let stats = respData.data.profile.stats.totalCollects;
+    console.log("response:", [TYPE_RESPONSE, requestId, stats]);
+    return encodeReply([TYPE_RESPONSE, requestId, stats]);
   } catch (error) {
     if (error === Error.FailedToFetchData) {
       throw error;
     } else {
-      console.log("error:", error);
+      // otherwise tell client we cannot process it
+      console.log("error:", [TYPE_ERROR, requestId, error]);
+      return encodeReply([TYPE_ERROR, requestId, errorToCode(error as Error)]);
     }
   }
-
 }
 
-//main("QmPvbwguLfcVryzBRrbY4Pb9bCtxURagdv1XjhtFLf3wHj");
+let request:HexString = "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000043078303100000000000000000000000000000000000000000000000000000000"
+let settings = "https://api.lens.org/graphql"
+main(request, settings);

@@ -1,6 +1,6 @@
 import "@phala/pink-env";
 import { Coders } from "@phala/ethers";
-// import fetchVotes  from "./query";
+import fetchVotes  from "./query";
 
 type HexString = `0x${string}`
 
@@ -53,48 +53,40 @@ function stringToHex(str: string): string {
 
 
 
-function fetchSnapshotAPI(proposalId: string): any {
-  function flattenVoterArray(obj) {
-    if (!obj.votes) {
-      return [];
-    }
-    return obj.votes.map((vote) => vote.voter);
-  }
-
-  const endpoint = "https://hub.snapshot.org/graphql";
-  console.log("proposalId:", proposalId);
-
+ async function fetchSnapshotAPI(): Promise<any> {
+  let voters = await fetchVotes();
   let headers = {
     "Content-Type": "application/json",
     "User-Agent": "phat-contract",
   };
-
-  let query = JSON.stringify({
-    query: ` query {
-      votes(
-        first: 10
-        skip: 0
-        where: { proposal: \"${proposalId}\" }
-        orderBy: "created"
-        orderDirection: desc
-      ) 
-      {
-        voter
+  // let query = JSON.stringify({
+  //   query: voters,
+  // });
+  let query = `
+  query {
+    votes(
+      first: 10
+      skip: 0
+      where: {
+        proposal: "QmPvbwguLfcVryzBRrbY4Pb9bCtxURagdv1XjhtFLf3wHj"
       }
-    }`,
-  });
-
-  // console.log("query before the Hex:", query);
-
-  let body = stringToHex(query); 
-
-  // console.log("body after hex:", body);
-
+      orderBy: "created"
+      orderDirection: desc
+    ) {        
+      voter   
+    }
+  }
+`
+  let body = stringToHex(query);
+  //
+  // In Phat Function runtime, we not support async/await, you need use `pink.batchHttpRequest` to
+  // send http request. The function will return an array of response.
+  //
   let response = pink.batchHttpRequest(
     [
       {
-        url: endpoint,
-        method: "POST",
+        url: 'https://hub.snapshot.org/graphql',
+        method: "GET",
         headers,
         body,
         returnTextBody: true,
@@ -102,6 +94,7 @@ function fetchSnapshotAPI(proposalId: string): any {
     ],
     10000
   )[0];
+  console.log("response", response);
 
   if (response.statusCode !== 200) {
     console.log(
@@ -111,19 +104,11 @@ function fetchSnapshotAPI(proposalId: string): any {
     );
     throw Error.FailedToFetchData;
   }
-
   let respBody = response.body;
-  console.log("responseBody:", respBody);
-
   if (typeof respBody !== "string") {
     throw Error.FailedToDecode;
   }
-
-  // let parsedData = JSON.parse(respBody);
-  // console.log("parsedData:", parsedData);
-  let flattenedData = flattenVoterArray(respBody);
-  console.log("flattenedData", flattenedData);
-  return flattenedData;
+  return JSON.parse(respBody);
 }
 
 //
@@ -141,9 +126,9 @@ function fetchSnapshotAPI(proposalId: string): any {
 // TestLensApiConsumerContract.sol for more details. We suggest a tuple of three elements: [successOrNotFlag, requestId, data] as
 // the return value.
 //
-export default async function main(proposalId: string) {
+export default async function main() {
   try{
-    let snapRespsonce = fetchSnapshotAPI(proposalId);
+    let snapRespsonce = fetchSnapshotAPI();
   // await fetchSnapshotAPI();
   } catch (error) {
     if (error === Error.FailedToFetchData) {
@@ -155,4 +140,4 @@ export default async function main(proposalId: string) {
 
 }
 
-//main("QmPvbwguLfcVryzBRrbY4Pb9bCtxURagdv1XjhtFLf3wHj");
+main();
