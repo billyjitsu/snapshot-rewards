@@ -82,7 +82,7 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
     }
 
     // Distribute tokens to the list of addresses
-     function distributeTokens(address[] memory recipients) internal {
+     function distributeTokens(address[] memory recipients) public {
         uint256 totalAmount = token.balanceOf(address(this));
         uint256 numOfRecipients = recipients.length;
 
