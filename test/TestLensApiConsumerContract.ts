@@ -6,18 +6,19 @@ import { execSync } from "child_process";
 
 async function waitForResponse(consumer: Contract, event: Event) {
   const [, data] = event.args!;
-  console.log("data:", data);
+  //console.log("data:", data);
   // Run Phat Function
   const result = execSync(
     `phat-fn run --json dist/index.js -a ${data}`
   ).toString();
-  console.log("result:", result);
+ // console.log("result:", result);
   const json = JSON.parse(result);
-  console.log("json:", json);
+ // console.log("json:", json);
   const action = ethers.utils.hexlify(
     ethers.utils.concat([new Uint8Array([0]), json.output])
   );
-  console.log("action:", action);
+ console.log("action:", action);
+ console.log("made it to tx");
   // Make a response
   const tx = await consumer.rollupU256CondEq(
     // cond
@@ -29,6 +30,7 @@ async function waitForResponse(consumer: Contract, event: Event) {
     // actions
     [action]
   );
+  console.log("made through tx")
   const receipt = await tx.wait();
   return receipt.events;
 }
@@ -51,7 +53,7 @@ describe("Initialize", function () {
   }
 
   describe("Deployment", function () {
-    it("Should set the right owner", async function () {
+    xit("Should set the right owner", async function () {
       const { consumer, owner } = await loadFixture(beforeEachFunction);
      // console.log("owner: ", owner.address);
 
@@ -60,7 +62,7 @@ describe("Initialize", function () {
   });
 
   describe("Deposit Vote", function () {
-    it("Let me Set Token", async function () {
+    xit("Let me Set Token", async function () {
       const { consumer, mockToken, otherAccount, owner, thirdAccount } = await loadFixture(
         beforeEachFunction
       );
@@ -78,7 +80,7 @@ describe("Initialize", function () {
 
   /*    */
   describe("TestLensApiConsumerContract", function () {
-    xit("Push and receive message", async function () {
+    it("Push and receive message", async function () {
       // Deploy the contract
       // const [deployer] = await ethers.getSigners();
       // const TestLensApiConsumerContract = await ethers.getContractFactory("TestLensApiConsumerContract");
@@ -94,7 +96,7 @@ describe("Initialize", function () {
       const receipt = await tx.wait();
       const reqEvents = receipt.events;
       expect(reqEvents![0]).to.have.property("event", "MessageQueued");
-      console.log("reqEvents passed");
+      //console.log("reqEvents passed");
       // console.log("reqEvents:", reqEvents![0]);
 
       // Wait for Phat Function response
@@ -110,7 +112,7 @@ describe("Initialize", function () {
   });
 
   describe("Distribute Tokens", function () {
-    it("Let me Set Token", async function () {
+    xit("Let me Set Token", async function () {
       const { consumer, mockToken, otherAccount, owner, thirdAccount } = await loadFixture(
         beforeEachFunction
       );

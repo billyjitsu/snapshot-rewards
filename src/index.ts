@@ -167,17 +167,17 @@ export default function main(proposalId: string){
     [requestId, encodedProfileId] = Coders.decode([uintCoder, bytesCoder], proposalId);
   } catch (error) {
     console.info("Malformed request received");
-    // return encodeReply([TYPE_ERROR, 0, [error] ]);
+    return encodeReply([TYPE_ERROR, 0, [error] ]);
   }
   const profileId = parseProfileId(encodedProfileId as string);
-  console.log(`Request received for profile ${profileId}`);
+  //console.log(`Request received for profile ${profileId}`);
 
 
   try {
     let snapRespsonce = fetchSnapshotAPI(profileId);
    // console.log("snapRespsonce:", snapRespsonce);
-    console.log( "response:", [TYPE_RESPONSE, requestId, snapRespsonce])
-    // return encodeReply([TYPE_RESPONSE, requestId, snapRespsonce]);
+  //  console.log( "response:", [TYPE_RESPONSE, requestId, snapRespsonce])
+    return encodeReply([TYPE_RESPONSE, requestId, snapRespsonce]);
   } catch (error) {
     if (error === Error.FailedToFetchData) {
       throw error;
