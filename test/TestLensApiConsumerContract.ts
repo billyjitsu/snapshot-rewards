@@ -6,14 +6,14 @@ import { execSync } from "child_process";
 
 async function waitForResponse(consumer: Contract, event: Event) {
   const [, data] = event.args!;
-  //console.log("data:", data);
+  console.log("data:", data);
   // Run Phat Function
   const result = execSync(
     `phat-fn run --json dist/index.js -a ${data}`
   ).toString();
- // console.log("result:", result);
+  //console.log("result:", result);
   const json = JSON.parse(result);
- // console.log("json:", json);
+  console.log("json:", json);
   const action = ethers.utils.hexlify(
     ethers.utils.concat([new Uint8Array([0]), json.output])
   );
@@ -96,7 +96,7 @@ describe("Initialize", function () {
       const receipt = await tx.wait();
       const reqEvents = receipt.events;
       expect(reqEvents![0]).to.have.property("event", "MessageQueued");
-      //console.log("reqEvents passed");
+      console.log("reqEvents passed");
       // console.log("reqEvents:", reqEvents![0]);
 
       // Wait for Phat Function response

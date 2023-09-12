@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./PhatRollupAnchor.sol";
+import "hardhat/console.sol";
 
 interface IERC20 {
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
@@ -51,11 +52,13 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
     }
 
     function _onMessageReceived(bytes calldata action) internal override {
-        require(action.length == 32 * 3, "cannot parse action");
+        //require(action.length == 32 * 3, "cannot parse action");
+        console.logBytes(action);
         (uint respType, uint id, address[] memory voters) = abi.decode(
             action,
             (uint, uint, address[])
         );
+        console.log("voters recieved:", voters.length);
         if (respType == TYPE_RESPONSE) {
             emit ResponseReceived(id, requests[id], voters);
             delete requests[id];

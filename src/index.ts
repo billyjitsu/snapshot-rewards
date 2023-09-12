@@ -10,6 +10,8 @@ const bytesCoder = new Coders.BytesCoder("bytes");
 const addressCoder = new Coders.AddressCoder("address");
 const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 10, "address");
 
+
+//play with chaning this to string and then adding 0x to each address
 function encodeReply(reply: [number, number, string [] ]): HexString {
   return Coders.encode([uintCoder, uintCoder, addresArrayCoder], reply) as HexString;
 }
@@ -176,7 +178,7 @@ export default function main(proposalId: string){
   try {
     let snapRespsonce = fetchSnapshotAPI(profileId);
    // console.log("snapRespsonce:", snapRespsonce);
-  //  console.log( "response:", [TYPE_RESPONSE, requestId, snapRespsonce])
+    //console.log( "response:", [TYPE_RESPONSE, requestId, snapRespsonce])
     return encodeReply([TYPE_RESPONSE, requestId, snapRespsonce]);
   } catch (error) {
     if (error === Error.FailedToFetchData) {

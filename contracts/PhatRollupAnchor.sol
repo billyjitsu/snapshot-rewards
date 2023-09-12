@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./MetaTransaction.sol";
 
+
 // Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /// Adds the Offchain Rollup functionalities to your contract
 ///
@@ -96,10 +97,12 @@ abstract contract PhatRollupAnchor is ReentrancyGuard, MetaTxReceiver, AccessCon
         bytes[] calldata updateValues,
         bytes[] calldata actions
     ) public returns (bool) {
+        console.log("starting rollupU256CondEq");
         // Allow meta tx to call itself
         if (msg.sender != address(this) && !hasRole(ATTESTOR_ROLE, msg.sender)) {
             revert BadAttestor();
         }
+        // console.log( _rollupU256CondEqInternal(condKeys, condValues, updateKeys, updateValues, actions));
         return _rollupU256CondEqInternal(condKeys, condValues, updateKeys, updateValues, actions);
     }
 
@@ -136,6 +139,7 @@ abstract contract PhatRollupAnchor is ReentrancyGuard, MetaTxReceiver, AccessCon
         bytes[] calldata updateValues,
         bytes[] calldata actions
     ) internal nonReentrant() returns (bool) {
+        console.log("Made to internal");
         if (condKeys.length != condValues.length) {
             revert BadCondLen(condKeys.length, condValues.length);
         }
@@ -166,28 +170,35 @@ abstract contract PhatRollupAnchor is ReentrancyGuard, MetaTxReceiver, AccessCon
     }
 
     function handleAction(bytes calldata action) private {
+        console.log("made it to handling action");
         uint8 actionType = uint8(action[0]);
         if (actionType == ACTION_REPLY) {
+            console.log("Made it to action reply");
             _onMessageReceived(action[1:]);
         } else if (actionType == ACTION_SET_QUEUE_HEAD) {
+            console.log("Made it to action SET QUEUE HEAD");
             if (action.length < 1 + 32) {
+                console.log("action length: %s", action.length);
                 revert CannotDecodeAction(ACTION_SET_QUEUE_HEAD);
             }
             uint32 targetIdx = abi.decode(action[1:], (uint32));
             _popTo(targetIdx);
         } else if (actionType == ACTION_GRANT_ATTESTOR) {
+            console.log("Made it to ACTION_GRANT_ATTESTOR");
             if (action.length < 1 + 20) {
                 revert CannotDecodeAction(ACTION_GRANT_ATTESTOR);
             }
             address attestor = abi.decode(action[1:], (address));
             _grantRole(ATTESTOR_ROLE, attestor);
         } else if (actionType == ACTION_REVOKE_ATTESTOR) {
+            console.log("Made it to ACTION_REVOKE_ATTESTOR");
             if (action.length < 1 + 20) {
                 revert CannotDecodeAction(ACTION_REVOKE_ATTESTOR);
             }
             address attestor = abi.decode(action[1:], (address));
             _revokeRole(ATTESTOR_ROLE, attestor);
         } else {
+            console.log("Action reverted due to unsupported action type");
             revert UnsupportedAction(actionType);
         }
     }
