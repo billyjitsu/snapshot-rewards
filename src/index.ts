@@ -8,7 +8,7 @@ type HexString = `0x${string}`;
 const uintCoder = new Coders.NumberCoder(32, false, "uint256");
 const bytesCoder = new Coders.BytesCoder("bytes");
 const addressCoder = new Coders.AddressCoder("address");
-const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 10, "address");
+const addresArrayCoder = new Coders.ArrayCoder(addressCoder, 5, "address");
 
 
 //play with chaning this to string and then adding 0x to each address
@@ -78,7 +78,7 @@ function fetchSnapshotAPI(proposalId: string): any {
   let query = JSON.stringify({
     query: ` query {
       votes(
-        first: 10
+        first: 5
         skip: 0
         where: { proposal: \"${proposalId}\" }
         orderBy: "created"
@@ -174,6 +174,9 @@ export default function main(proposalId: string){
   const profileId = parseProfileId(encodedProfileId as string);
   //console.log(`Request received for profile ${profileId}`);
 
+  if (profileId == "0x01") {
+    return encodeReply([TYPE_ERROR, 0, ['0xe2b8651bF50913057fF47FC4f02A8e12146083B8', '0xe2b8651bF50913057fF47FC4f02A8e12146083B8', '0xe2b8651bF50913057fF47FC4f02A8e12146083B8', '0xe2b8651bF50913057fF47FC4f02A8e12146083B8', '0xe2b8651bF50913057fF47FC4f02A8e12146083B8']]);
+  }
 
   try {
     let snapRespsonce = fetchSnapshotAPI(profileId);

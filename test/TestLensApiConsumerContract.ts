@@ -86,7 +86,19 @@ describe("Initialize", function () {
       // const TestLensApiConsumerContract = await ethers.getContractFactory("TestLensApiConsumerContract");
       // const consumer = await TestLensApiConsumerContract.deploy(deployer.address);
 
-      const { consumer, owner } = await loadFixture(beforeEachFunction);
+      const { consumer, mockToken, otherAccount, owner, thirdAccount } = await loadFixture(
+        beforeEachFunction
+      );
+
+      ////////// 1. Set Token //////////
+      await mockToken.mint();
+      //console.log("Balance of owner:", await mockToken.balanceOf(owner.address));
+      await consumer.setToken(mockToken.address);
+
+      await mockToken.approve(consumer.address, ethers.utils.parseEther("10"));
+      await consumer.depositTokens(ethers.utils.parseEther("10"));
+
+
       // Make a request
       // const profileId = "0x01";
       const snapshotProposalId =
@@ -97,17 +109,25 @@ describe("Initialize", function () {
       const reqEvents = receipt.events;
       expect(reqEvents![0]).to.have.property("event", "MessageQueued");
       console.log("reqEvents passed");
-      // console.log("reqEvents:", reqEvents![0]);
+      //console.log("reqEvents:", reqEvents![0]);
 
       // Wait for Phat Function response
       const respEvents = await waitForResponse(consumer, reqEvents![0]);
       console.log("response received");
+      console.log("respEvents:", respEvents);
+
       // Check response data
       expect(respEvents[0]).to.have.property("event", "ResponseReceived");
-      const [reqId, pair, value] = respEvents[0].args;
+      const [reqId, pair, value, value1] = respEvents[0].args;
+      console.log("reqId:", reqId);
+      console.log("pair:", pair);
+      console.log("value:", value);
+      console.log("value1:", value1);
+
       expect(ethers.BigNumber.isBigNumber(reqId)).to.be.true;
       expect(pair).to.equal(snapshotProposalId);
-      expect(ethers.BigNumber.isBigNumber(value)).to.be.true;
+     // expect(ethers.BigNumber.isBigNumber(value)).to.be.true;
+     expect(await mockToken.balanceOf('0x96176C25803Ce4cF046aa74895646D8514Ea1611')).to.equal(ethers.utils.parseEther("2"));
     });
   });
 

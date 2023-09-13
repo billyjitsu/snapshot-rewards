@@ -31,6 +31,8 @@ const config: HardhatUserConfig = {
       // If not set, you can get your own Alchemy API key at https://dashboard.alchemyapi.io or https://infura.io
       url: process.env.POLYGON_RPC_URL ?? '',
       accounts: [DEPLOYER_PRIVATE_KEY],
+      gas: 200000000,
+      gasPrice: 100000000000,
     },
     mumbai: {
       // If not set, you can get your own Alchemy API key at https://dashboard.alchemyapi.io or https://infura.io

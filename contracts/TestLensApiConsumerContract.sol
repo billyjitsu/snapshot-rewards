@@ -13,8 +13,8 @@ interface IERC20 {
 }
 
 contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
-    event ResponseReceived(uint reqId, string pair, address [] voters);
-    event ErrorReceived(uint reqId, string pair, address [] voters);
+    event ResponseReceived(uint reqId, string pair, address voter1, address voter2, address voter3, address voter4, address voter5);
+    event ErrorReceived(uint reqId, string pair, address voter);
     event Deposited(address indexed user, uint256 amount);
     event Distributed(address indexed user, uint256 totalAmount);
 
@@ -54,18 +54,32 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
     function _onMessageReceived(bytes calldata action) internal override {
         //require(action.length == 32 * 3, "cannot parse action");
         console.logBytes(action);
-        (uint respType, uint id, address[] memory voters) = abi.decode(
+        (uint respType, uint id, address voter1, address voter2, address voter3, address voter4, address voter5) = abi.decode(
             action,
-            (uint, uint, address[])
+            (uint, uint, address, address, address, address, address)
         );
-        console.log("voters recieved:", voters.length);
+        console.log("voters recieved:", voter1);
+        console.log("voters recieved:", voter2);
+        console.log("voters recieved:", voter3);
+        console.log("voters recieved:", voter4);
+        console.log("voters recieved:", voter5);
+
+        // Create a local array to hold the voter addresses
+        address[] memory voters = new address[](5);
+        voters[0] = voter1;
+        voters[1] = voter2;
+        voters[2] = voter3;
+        voters[3] = voter4;
+        voters[4] = voter5;
+
         if (respType == TYPE_RESPONSE) {
-            emit ResponseReceived(id, requests[id], voters);
+            emit ResponseReceived(id, requests[id], voter1, voter2, voter3, voter4, voter5);
             delete requests[id];
             //CALL FUNCTION HERE VOTERS
+            console.log("distribute tokens");
             distributeTokens(voters);
         } else if (respType == TYPE_ERROR) {
-            emit ErrorReceived(id, requests[id], voters);
+            emit ErrorReceived(id, requests[id], voter1);
             delete requests[id];
         }
     }
@@ -86,6 +100,7 @@ contract TestLensApiConsumerContract is PhatRollupAnchor, Ownable {
 
     // Distribute tokens to the list of addresses
      function distributeTokens(address[] memory recipients) public {
+        console.log("Inside Distribute Tokens", recipients[0]);
         uint256 totalAmount = token.balanceOf(address(this));
         uint256 numOfRecipients = recipients.length;
 
